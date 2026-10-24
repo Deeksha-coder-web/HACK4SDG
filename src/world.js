@@ -225,7 +225,32 @@ export async function createWorld(canvas, opts = {}) {
     return c.toDataURL('image/png');
   }
 
+  /* ---- a part designed by the backend: its GLB (millimetres, Y up) on the stage, in the same printed look ---- */
+  let result = null;
+  async function showResult(buf) {
+    const gltf = await new Promise((res, rej) => new GLTFLoader().parse(buf, '', res, rej));
+    const inner = new THREE.Group();
+    gltf.scene.updateMatrixWorld(true);
+    gltf.scene.traverse(o => {
+      if (!o.isMesh) return;
+      if (!o.geometry.attributes.normal) o.geometry.computeVertexNormals();
+      const m = new THREE.Mesh(o.geometry, partMat); m.applyMatrix4(o.matrixWorld); m.castShadow = m.receiveShadow = true; inner.add(m);
+    });
+    if (!inner.children.length) throw new Error('empty model');
+    const b0 = new THREE.Box3().setFromObject(inner), s0 = b0.getSize(new THREE.Vector3()), c0 = b0.getCenter(new THREE.Vector3());
+    inner.position.set(-c0.x, -b0.min.y, -c0.z);
+    const wrap = new THREE.Group(); wrap.add(inner); wrap.scale.setScalar(1.9 / Math.max(s0.x, s0.y, s0.z, 1e-6));
+    if (result) scene.remove(result.group);
+    scene.add(wrap); wrap.visible = false;
+    const box = new THREE.Box3().setFromObject(wrap), size = box.getSize(new THREE.Vector3());
+    const w = Math.max(size.x, size.z), h = size.y;
+    result = { group: wrap, h, w, ty: h * 0.46 + 0.04, dist: Math.max(6.2, 4.0 * h, 4.2 * w), el: h < 0.7 * w ? 22 : 10, mm: [s0.x, s0.y, s0.z] };
+    return result;
+  }
+  const getResult = () => result;
+
   return {
+    showResult, getResult,
     THREE, renderer, scene, camera, size, dprMax, key, rim, fill, stage, accent, measures,
     bottle, body, bu, capPiece, cu, newCap, nu, newMat, ghosts, printer, models, dust, dpos, dvel,
     CAP_Y0, CAP_Y1, CUT_Y, resize, project, setCamera, setAccent, updatePrinterRig, snapshot

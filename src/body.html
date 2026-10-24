@@ -112,11 +112,11 @@
             <div class="chips" id="prims" aria-label="Eight interaction primitives"><span>Grip</span><span>Rotate</span><span>Pinch</span><span>Press</span><span>Pull</span><span>Push</span><span>Squeeze</span><span>Stabilize</span></div>
           </div>
           <div class="wg wg3">
-            <ul class="pipe" id="pipe"><li>2D design</li><li>3D mesh (.GLB)</li><li>STL / 3MF</li></ul>
+            <ul class="pipe" id="pipe"><li>2D design</li><li>3D mesh (.GLB)</li><li>STL</li></ul>
             <div class="chips" id="cands" aria-label="Candidate designs"><span>Candidate A</span><span>Candidate B</span><span>Candidate C</span></div>
           </div>
           <div class="wg wg4">
-            <ul class="steps-in" id="checks"><li>Geometry fit</li><li>Manufacturable</li><li>Export STL / 3MF</li></ul>
+            <ul class="steps-in" id="checks"><li>Closed, printable solid</li><li>Slicer check</li><li>Export STL</li></ul>
           </div>
           <div class="wg wg5">
             <div class="meter"><div class="bar"><i id="prBar"></i></div><p class="mono"><span id="prLayer">Layer 0 of 225</span><span>0.2 mm layers</span></p></div>
@@ -150,6 +150,7 @@
             <div><dt>What gets printed</dt><dd id="exPrint"></dd></div>
             <div><dt>Interaction</dt><dd><div class="chips" style="margin:0" id="exPrims"></div></dd></div>
           </dl>
+          <div class="ex-act"><button class="btn btn-fil" type="button" id="exMake">Make this part for me</button><p class="mono" id="exMakeNote" aria-live="polite"></p></div>
         </div>
       </div>
     </div>
@@ -161,6 +162,7 @@
       <div class="repair-card glass">
         <h2>Tell us what’s broken or hard to use.</h2>
         <p>Send a few photos and we’ll design a replacement part for you. This is the input the AI reads: 1–3 photos, optional dimensions, a description of the problem and who it needs to work for, and a material preference.</p>
+        <p class="rf-status mono" id="rfStatus" aria-live="polite"></p>
         <form class="form" id="repairForm" novalidate>
           <label class="drop" id="drop" for="photos"><span><b>Drop 1–3 photos</b> or tap to choose</span><input type="file" id="photos" accept="image/*" multiple></label>
           <div class="thumbs" id="thumbs"></div>

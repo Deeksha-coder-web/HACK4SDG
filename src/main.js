@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { createWorld, S, BOTTLE_HALF, CAP_PIECE_Y } from './world.js';
 import { EX } from './ex.js';
+import { initBackend } from './backend.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -22,8 +23,8 @@ const STAGES = [
   ['Snap a photo', 'Snap a photo of the object that is hard to use, or of the part that broke. Add 1–3 photos, optional dimensions, a short description of the problem and who it needs to work for.'],
   ['Scaled 3D digital twin', 'ReForm3D doesn’t just see an object. It reasons about how the object is used, what is failing and who struggles with it. The photo becomes a scaled digital twin.'],
   ['AI understands', 'Geometric and functional analysis: object recognition, interaction analysis and the functional requirement, mapped onto eight interaction primitives. Here: a smooth cap that weak hands can’t grip.'],
-  ['AI generates the fix', 'Generative intervention: a 2D design becomes a 3D mesh, then a print-ready STL/3MF file. Three candidate caps, one chosen: a wing grip that turns with a palm.'],
-  ['Compatibility check', 'Before anything prints, the part is checked for geometry fit and manufacturability.'],
+  ['AI generates the fix', 'Generative intervention: the AI writes the part as CAD code, and the engine turns it into a 3D mesh and a print-ready STL. Candidates are weighed, one is chosen: a wing grip that turns with a palm.'],
+  ['Compatibility check', 'Before anything prints, the part is checked: a closed solid, thick enough walls, no unsupported overhangs, and a real slicer run for print time and plastic.'],
   ['Print & refit', 'Printed in durable, recyclable filament at home or in a community makerspace, then fitted back. A bottle that was hard to open becomes one anyone can open, for a few grams of plastic.']
 ];
 
@@ -48,6 +49,7 @@ const POSE = [
   const root = document.documentElement;
   root.classList.add('js');
   setTimeout(() => document.body.classList.add('ready'), 5000);
+  let backend = null;
   const ldBar = $('#ldBar'), ldTxt = $('#ldTxt'), loader = $('#loader');
   const setLd = (p, t) => { ldBar.style.width = p + '%'; if (t) ldTxt.textContent = t; };
   const isMobile = () => innerWidth < 900;
@@ -62,7 +64,7 @@ const POSE = [
   const { bottle, bu, capPiece, cu, newCap, nu, ghosts, printer, models, CAP_Y0, CAP_Y1, camera } = W;
   const NX = EX.length;
   const glCanvas = $('#gl');
-  const state = { T: 0, Ts: 0, rotY: 0.5, mRot: EX.map((_, i) => 0.4 + i * 0.37), userRot: 0, userVel: 0, sel: 0, time: 0, px: 0, py: 0, pxs: 0, pys: 0, photo: false, snapReq: false, flashed1: false, flashed2: false, frameDist: 4.6, frameTy: 0.78, frameEl: 6 };
+  const state = { resKey: 0, resA: 0, T: 0, Ts: 0, rotY: 0.5, mRot: EX.map((_, i) => 0.4 + i * 0.37), userRot: 0, userVel: 0, sel: 0, time: 0, px: 0, py: 0, pxs: 0, pys: 0, photo: false, snapReq: false, flashed1: false, flashed2: false, frameDist: 4.6, frameTy: 0.78, frameEl: 6 };
   let canvasA = 1;
   const pres = [1, ...EX.map(() => 0)];
   const objs = [bottle, ...models.map(m => m.group)];
@@ -99,6 +101,8 @@ const POSE = [
     for (const k in a) p[k] = lerp(a[k], b[k], f);
     const g = sm(clamp((T - 8.5) / 0.6)) * (1 - sm(clamp((T - 9.8) / 0.4)));
     p.dist = lerp(p.dist, state.frameDist, g); p.ty = lerp(p.ty, state.frameTy, g); p.el = lerp(p.el, state.frameEl, g);
+    const res = W.getResult();
+    if (res && state.resA > 0.001) { const r = state.resA; p.dist = lerp(p.dist, res.dist, r); p.ty = lerp(p.ty, res.ty, r); p.el = lerp(p.el, res.el, r); }
     p.tx = keyLerp(T, [[0, 0], [6.65, 0], [7, 0.22], [7.8, 0.22], [8.0, -0.55], [8.6, -0.55], [9.2, 0]]);
     if (isMobile()) { p.sx = 0.5; p.dist *= T > 6.6 && T < 8.1 ? 2.05 : T > 8.1 ? 1.65 : 1.4; p.sy = keyLerp(T, mobileSy); p.dist *= 1 + 0.35 * g; }
     return p;
@@ -166,6 +170,11 @@ const POSE = [
     const inGal = T > 8.75 && T < 9.95;
     const target = pres.map((_, k) => (k === 0 ? 1 : 0));
     if (inGal) { target.fill(0); target[state.sel + 1] = 1; }
+    // a part from the design server replaces the bottle in the request chapter
+    const res = W.getResult(), resOn = !!res && T > 10.6;
+    if (resOn) target[0] = 0;
+    state.resA += ((resOn ? 1 : 0) - state.resA) * (1 - Math.exp(-dt * 5.5));
+    if (res) { res.group.visible = state.resA > 0.01; res.group.position.set((1 - state.resA) * -5.5, 0, 0); res.group.rotation.y = state.rotY + state.userRot; }
     for (let k = 0; k <= NX; k++) pres[k] += (target[k] - pres[k]) * (1 - Math.exp(-dt * 5.5));
     // spin
     const gate = 1 - sm(clamp((stT - 0.9) / 0.2)) * (1 - sm(clamp((stT - 4.8) / 0.2)));
@@ -333,8 +342,23 @@ const POSE = [
     input.addEventListener('change', () => showFiles(input.files));
     ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
     ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
-    drop.addEventListener('drop', e => { if (e.dataTransfer && e.dataTransfer.files) showFiles(e.dataTransfer.files); });
-    $('#repairForm').addEventListener('submit', e => { e.preventDefault(); note.textContent = 'Demo only: nothing was uploaded or sent. In ReForm3D these inputs go to the AI pipeline shown above.'; });
+    drop.addEventListener('drop', e => {
+      const f = e.dataTransfer && e.dataTransfer.files; if (!f) return;
+      try { input.files = f; } catch (err) { /* older browsers: preview only */ }
+      showFiles(f);
+    });
+    // the design server: clarifying questions, AI design, sizes, downloads; the finished part goes onto the 3D stage
+    backend = initBackend({ onModel: (W && state) ? async (buf) => { await W.showResult(buf); state.resKey++; } : null });
+    const make = $('#exMake'), makeNote = $('#exMakeNote');
+    if (make) {
+      if (!backend.makeTemplate) { make.hidden = true; }
+      else make.addEventListener('click', () => {
+        const e = EX[state.sel];
+        makeNote.textContent = 'Building your ' + e.name.toLowerCase() + '. It will appear in the request form below.';
+        backend.makeTemplate(e.id).then(() => { makeNote.textContent = ''; });
+        const rep = document.getElementById('repair'); scrollTo({ top: rep.getBoundingClientRect().top + scrollY, behavior: reduce ? 'auto' : 'smooth' });
+      });
+    }
     // magnetic buttons
     if (matchMedia('(hover: hover)').matches && !reduce) $$('.btn').forEach(b => {
       b.addEventListener('pointermove', e => { const r = b.getBoundingClientRect(); b.style.translate = ((e.clientX - r.left - r.width / 2) * 0.12) + 'px ' + ((e.clientY - r.top - r.height / 2) * 0.2) + 'px'; });
