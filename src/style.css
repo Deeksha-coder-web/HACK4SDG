@@ -310,3 +310,40 @@ h2 { font-weight: 700; font-stretch: 84%; font-size: clamp(2.4rem, 6vw, 5.6rem);
 .js body:not(.ready) .hero-copy > *, .js body:not(.ready) .cta-row { opacity: 0; transform: translateY(28px); }
 .js body:not(.ready) .wordmark { opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .hero-copy > *, .cta-row, .wordmark { transition: none; } }
+
+/* ---------- design server: status, questions, result panel (inside the repair card) ---------- */
+.rf-status { font-size: .76rem; color: var(--bone-3); }
+.rf-status.ok::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 8px; border-radius: 50%; background: #5fd39a; box-shadow: 0 0 10px #5fd39a; vertical-align: 1px; }
+.rf-status.bad { color: #ff9b8a; }
+.rf-out { display: grid; gap: 16px; margin-top: 8px; padding-top: 20px; border-top: 1px solid var(--line); scroll-margin-top: 90px; }
+.rf-out[hidden] { display: none; }
+.rf-busy { display: flex; align-items: center; gap: 12px; color: var(--bone); }
+.rf-busy i { width: 14px; height: 14px; flex: none; border-radius: 50%; border: 2px solid var(--line-2); border-top-color: var(--fil); animation: rfspin .9s linear infinite; }
+.rf-busy b { margin-left: auto; font-weight: 500; font-size: .8rem; color: var(--bone-3); }
+@keyframes rfspin { to { transform: rotate(360deg); } }
+.rf-head h3 { font: 700 clamp(1.4rem, 2vw, 1.8rem)/1.05 var(--f-display); font-stretch: 88%; letter-spacing: -.02em; }
+.rf-head p { margin-top: 4px; font-size: .76rem; color: var(--fil); }
+.rf-stage-note { font-size: .76rem; color: var(--bone-2); }
+.rf-stage-note:empty { display: none; }
+.rf-prev { width: 100%; max-height: 220px; object-fit: contain; border-radius: 16px; border: 1px solid var(--line); background: rgba(5, 13, 10, .55); }
+.rf-und { color: var(--bone-2); }
+.rf-est { font-size: .76rem; color: var(--bone-3); }
+.rf-dl, .rf-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.rf-dl .btn, .rf-row .btn { padding: .8em 1.2em; font-size: .88rem; }
+.rf-pieces { display: grid; gap: 8px; font-size: .9rem; color: var(--bone-2); }
+.rf-pieces .mono { font-size: .74rem; color: var(--bone-3); }
+.rf-sec h3, .rf-tune h3 { font: 600 1rem/1.2 var(--f-display); font-stretch: 90%; margin-bottom: 6px; }
+.rf-tune h3 .mono { font: 500 .7rem var(--f-mono); color: var(--bone-3); margin-left: 6px; }
+.rf-sec ul { display: grid; gap: 5px; padding-left: 1.1em; list-style: disc; color: var(--bone-2); font-size: .92rem; }
+.rf-sec.warn h3, .rf-warn { color: #ffb27a; }
+.rf-qs, .rf-tune, .rf-rev { display: grid; gap: 12px; }
+.rf-qs .field .mono, .rf-tune .field .mono { font-size: .72rem; color: var(--bone-3); }
+.rf-why { font-size: .76rem; color: var(--bone-3); }
+.rf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.rf-tune .btn, .rf-rev .btn { justify-self: start; }
+.rf-disc { font-size: .76rem; color: var(--bone-3); }
+.note-out.rf-bad { color: #ff9b8a; }
+.ex-act { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.ex-act .btn { padding: .8em 1.25em; font-size: .9rem; }
+.ex-act p { font-size: .74rem; color: var(--bone-3); }
+.ex-act .btn[hidden] { display: none; }
